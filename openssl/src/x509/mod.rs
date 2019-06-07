@@ -1170,28 +1170,6 @@ impl X509ReqRef {
     }
 }
 
-/// A builder used to construct an `X509Crl`.
-pub struct X509CrlBuilder(X509Crl);
-
-impl X509CrlBuilder {
-    /// Returns a builder for a certificate request.
-    ///
-    /// This corresponds to [`X509_CRL_new`].
-    ///
-    ///[`X509_CRL_new`]: https://www.openssl.org/docs/man1.1.0/crypto/X509_CRL_new.html
-    pub fn new() -> Result<X509CrlBuilder, ErrorStack> {
-        unsafe {
-            ffi::init();
-            cvt_p(ffi::X509_CRL_new()).map(|p| X509CrlBuilder(X509Crl(p)))
-        }
-    }
-
-    /// Returns the `X509Crl`.
-    pub fn build(self) -> X509Crl {
-        self.0
-    }
-}
-
 foreign_type_and_impl_send_sync! {
     type CType = ffi::X509_CRL;
     fn drop = ffi::X509_CRL_free;
@@ -1203,11 +1181,6 @@ foreign_type_and_impl_send_sync! {
 }
 
 impl X509Crl {
-    /// A builder for `X509Crl`.
-    pub fn builder() -> Result<X509CrlBuilder, ErrorStack> {
-        X509CrlBuilder::new()
-    }
-
     from_pem! {
         /// Deserializes a PEM-encoded Certificate Revocation List
         ///
