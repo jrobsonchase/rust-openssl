@@ -1171,6 +1171,49 @@ impl X509ReqRef {
 }
 
 foreign_type_and_impl_send_sync! {
+    type CType = ffi::X509_REVOKED;
+    fn drop = ffi::X509_REVOKED_free;
+
+    /// An `X509` certificate request.
+    pub struct X509Revoked;
+    /// Reference to `X509Crl`.
+    pub struct X509RevokedRef;
+}
+
+impl X509Revoked {
+    from_der! {
+        /// Deserializes a DER-encoded certificate revokation status
+        ///
+        /// This corresponds to [`d2i_X509_REVOKED`].
+        ///
+        /// [`d2i_X509_REVOKED`]: https://www.openssl.org/docs/man1.1.0/crypto/d2i_X509_REVOKED.html
+        from_der,
+        X509Revoked,
+        ffi::d2i_X509_REVOKED
+    }
+
+    fn serial_number(&self) -> &Asn1IntegerRef {
+        unsafe {
+            let r = ffi::X509_REVOKED_get_serialNumber(self.as_ptr());
+            assert!(!r.is_null());
+            Asn1IntegerRef::from_ptr(r)
+        }
+    }
+}
+
+impl X509RevokedRef {
+    to_der! {
+        /// Serializes the certificate request to a DER-encoded certificate revocation status
+        ///
+        /// This corresponds to [`i2d_X509_REVOKED`].
+        ///
+        /// [`i2d_X509_REVOKED`]: https://www.openssl.org/docs/man1.0.2/crypto/i2d_X509_REQ.html
+        to_der,
+        ffi::i2d_X509_REVOKED
+    }
+}
+
+foreign_type_and_impl_send_sync! {
     type CType = ffi::X509_CRL;
     fn drop = ffi::X509_CRL_free;
 
@@ -1256,6 +1299,40 @@ impl X509CrlRef {
                 None
             } else {
                 Some(Asn1TimeRef::from_ptr(date as *mut _))
+            }
+        }
+    }
+
+    /// Get the revocation status of a certificate by its serial number
+    ///
+    /// This corresponds to [`X509_CRL_get0_by_serial`]
+    ///
+    /// [`X509_CRL_get0_by_serial`]: https://www.openssl.org/docs/man1.1.0/crypto/X509_CRL_get0_by_serial.html
+    pub fn get_by_serial(&self, serial: &Asn1IntegerRef) -> Option<&X509RevokedRef> {
+        unsafe {
+            let mut ret = ptr::null_mut::<ffi::X509_REVOKED>();
+            ffi::X509_CRL_get0_by_serial(self.as_ptr(), &mut ret as *mut _, serial.as_ptr());
+            if ret.is_null() {
+                None
+            } else {
+                Some(X509RevokedRef::from_ptr(ret))
+            }
+        }
+    }
+
+    /// Get the revocation status of a certificate
+    ///
+    /// This corresponds to [`X509_CRL_get0_by_cert`]
+    ///
+    /// [`X509_CRL_get0_by_cert`]: https://www.openssl.org/docs/man1.1.0/crypto/X509_CRL_get0_by_cert.html
+    pub fn get_by_cert(&self, cert: &X509) -> Option<&X509RevokedRef> {
+        unsafe {
+            let mut ret = ptr::null_mut::<ffi::X509_REVOKED>();
+            ffi::X509_CRL_get0_by_cert(self.as_ptr(), &mut ret as *mut _, cert.as_ptr());
+            if ret.is_null() {
+                None
+            } else {
+                Some(X509RevokedRef::from_ptr(ret))
             }
         }
     }
